@@ -1,5 +1,5 @@
 LANGUAGE = {
-	schemaName = "Half-Life 2 Roleplay",
+	schemaName = "N-City",
 	tying = "Tying...",
 	unTying = "Untying...",
 	isTied = "Tied",
