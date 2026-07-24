@@ -9,6 +9,10 @@ FACTION.runSounds = {[0] = "NPC_CombineS.RunFootstepLeft", [1] = "NPC_CombineS.R
 -- ===================================================================
 -- Custom rank progression, same approach as Metropolice - ranks are read
 -- from the character's name, e.g. "OTA-EOS.00042" = rank "EOS".
+--
+-- NOTE: "pistol", "smg1", "shotgun", "357", "ar2" below are your edited
+-- stock items (now pointing at TFA classes). "tfa_osips", "weapon_csniper_tfa2"
+-- and "tfa_ocipr" are still separate new items with no stock equivalent.
 -- ===================================================================
 
 local RANK_ORDER = {"OWG", "OWS", "OWR", "EOWS", "EOS", "EOW", "ORD"}
@@ -27,30 +31,26 @@ FACTION.models = {RANK_MODELS.OWG}
 
 -- Only OWG had bodygroup instructions, so it's the only rank listed here - every other
 -- rank is left at whatever its model's own default bodygroups are (nothing gets reset).
--- Add an entry the same way (bodygroup name -> value) if another rank needs one too.
 local RANK_BODYGROUPS = {
 	["OWG"] = {["Chest"] = 1, ["Knee Armor"] = 1, ["Shoulder Armor"] = 1}
 }
 
--- Full item set per rank. "grenade" is the frag grenade item that already exists in the
--- schema (schema/items/weapons/sh_grenade.lua) - it currently only allows CLASS_EOW to use
--- it, which will block most of these ranks, so that restriction needs loosening separately.
--- Everything else here needs a real Helix item file - see the new item files alongside this.
+-- Full item set per rank, using your ACTUAL item uniqueIDs.
 local RANK_ITEMS = {
-	["OWG"] = {"tfa_osips", "tfa_hl2r_pistol"},
-	["OWS"] = {"tfa_hl2r_smg1", "tfa_hl2r_pistol", "grenade"},
-	["OWR"] = {"weapon_csniper_tfa2", "tfa_hl2r_pistol"},
-	["EOWS"] = {"tfa_hl2r_ar2", "tfa_hl2r_pistol", "grenade"},
-	["EOS"] = {"tfa_hl2r_shotgun", "tfa_hl2r_357", "grenade", "grenade"}, -- 2x grenade as requested
-	["EOW"] = {"tfa_hl2r_ar2", "tfa_hl2r_357", "grenade"},
-	["ORD"] = {"tfa_ocipr", "tfa_hl2r_pistol", "grenade"}
+	["OWG"] = {"tfa_osips", "pistol"},
+	["OWS"] = {"smg1", "pistol", "grenade"},
+	["OWR"] = {"weapon_csniper_tfa2", "pistol"},
+	["EOWS"] = {"ar2", "pistol", "grenade"},
+	["EOS"] = {"shotgun", "357", "grenade", "grenade"}, -- 2x grenade as requested
+	["EOW"] = {"ar2", "357", "grenade"},
+	["ORD"] = {"tfa_ocipr", "pistol", "grenade"}
 }
 
 -- Every item that appears anywhere above, so a promotion/demotion can wipe old rank gear
 -- before granting the new set instead of it stacking up.
 local ALL_TRACKED_ITEMS = {
-	"tfa_osips", "tfa_hl2r_pistol", "tfa_hl2r_smg1", "weapon_csniper_tfa2",
-	"tfa_hl2r_ar2", "tfa_hl2r_shotgun", "tfa_hl2r_357", "tfa_ocipr", "grenade"
+	"tfa_osips", "pistol", "smg1", "weapon_csniper_tfa2",
+	"ar2", "shotgun", "357", "tfa_ocipr", "grenade"
 }
 
 local function ApplyRankBodygroups(client, rankCode)
@@ -60,8 +60,6 @@ local function ApplyRankBodygroups(client, rankCode)
 		return -- no override for this rank, leave the model's own default bodygroups alone
 	end
 
-	-- reads the CURRENT model's real bodygroup list at runtime instead of a hardcoded name
-	-- list, so this works correctly no matter which of the 7 models is active
 	for _, info in ipairs(client:GetBodyGroups()) do
 		client:SetBodygroup(info.id, groups[info.name] or 0)
 	end
@@ -87,9 +85,6 @@ local function ApplyRankLoadout(character, rankCode)
 	end
 end
 
--- "EOWS" contains both "OWS" and "EOW" as substrings, so a plain first-match search would
--- misfire on it. Always preferring the LONGEST matching code fixes that without renaming
--- anything - "EOWS" (4 chars) always wins over "OWS"/"EOW" (3 chars) when it's really present.
 local function DetectRank(name)
 	local best, bestLength = nil, 0
 
