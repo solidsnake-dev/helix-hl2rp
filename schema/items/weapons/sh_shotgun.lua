@@ -1,13 +1,8 @@
-ITEM.name = "Shotgun"
-ITEM.description = "A powerful pump-action shotgun."
-ITEM.model = "models/weapons/w_shotgun.mdl"
-ITEM.class = "weapon_shotgun"
+ITEM.name = "SPAS-12"
+ITEM.description = "A powerful shotgun."
+ITEM.model = "models/weapons/w_shotgun.mdl" -- placeholder, match to the TFA addon's world model
+ITEM.class = "tfa_hl2r_shotgun" -- PLACEHOLDER - verify against the real TFA class name in-game
 ITEM.weaponCategory = "primary"
-ITEM.classes = {CLASS_EOW}
-ITEM.width = 3
-ITEM.height = 1
-ITEM.iconCam = {
-    pos = Vector(0, 200, 1),
-    ang = Angle(0, 270, 0),
-    fov = 10
-}
+ITEM.width = 4
+ITEM.height = 2
+ITEM.category = "Weapons"
