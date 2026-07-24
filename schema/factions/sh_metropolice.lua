@@ -12,6 +12,10 @@ FACTION.runSounds = {[0] = "NPC_MetroPolice.RunFootstepLeft", [1] = "NPC_MetroPo
 -- Custom rank progression. Ranks are read from the character's name,
 -- e.g. "MPF-60.00042" = rank "60". GetDefaultName/OnTransferred below
 -- put new recruits at rank "00" automatically.
+--
+-- NOTE: "pistol", "smg1", "shotgun", "357" below are your edited stock
+-- items (now pointing at TFA classes). Only "tfa_hl2_oicw" is still a
+-- separate new item, since HL2 has no stock OICW to repurpose.
 -- ===================================================================
 
 local RANK_ORDER = {"00", "20", "40", "60", "80", "RL", "RC"}
@@ -27,38 +31,26 @@ local RANK_BODYGROUPS = {
 	["RC"] = {["Cp Body"] = 16, ["Cp Belt"] = 1, ["Cp Bag"] = 1, ["Base"] = 1}
 }
 
--- Every bodygroup name that exists on the model, so we can zero out anything not set above.
-local ALL_BODYGROUPS = {"Base", "Cp Body", "Cp Head", "Cp Armor", "Cp Belt", "Cp Pants", "Cp Bag", "Satchel"}
-
--- TFA items each rank should have equipped, IN ADDITION to the base pistol/pistolammo/stunstick
--- every MPF member already gets (those are handled elsewhere and never touched here).
--- These uniqueIDs must match real Helix item files you've created (e.g. from the tfa_weapons plugin) -
--- if an item doesn't exist yet, inventory:Add() just silently does nothing, it won't error.
+-- Full item set per rank, using your ACTUAL item uniqueIDs.
 local RANK_ITEMS = {
-	["00"] = {},
-	["20"] = {"tfa_hl2r_pistol"},
-	["40"] = {"tfa_hl2r_pistol"},
-	["60"] = {"tfa_hl2r_pistol", "tfa_hl2r_smg1"},
-	["80"] = {"tfa_hl2r_pistol", "tfa_hl2r_shotgun"}, -- written as "same as 20 + shotgun" - change to
-	                                                    -- {"tfa_hl2r_pistol", "tfa_hl2r_smg1", "tfa_hl2r_shotgun"}
-	                                                    -- if 80 should keep the SMG from 60 too
-	["RL"] = {"tfa_hl2r_357", "tfa_hl2r_shotgun"},
-	["RC"] = {"tfa_hl2r_357", "tfa_hl2_oicw"}
+	["00"] = {"pistol"},
+	["20"] = {"pistol"},
+	["40"] = {"pistol"},
+	["60"] = {"pistol", "smg1"},
+	["80"] = {"pistol", "shotgun"}, -- still "same as 20 + shotgun" per your confirmation
+	["RL"] = {"357", "shotgun"},
+	["RC"] = {"357", "tfa_hl2_oicw"}
 }
 
--- Every TFA item that appears ANYWHERE above, so promotions/demotions can wipe old rank gear
--- before granting the new set (prevents gear from stacking up across promotions).
-local ALL_TRACKED_ITEMS = {"tfa_hl2r_pistol", "tfa_hl2r_smg1", "tfa_hl2r_shotgun", "tfa_hl2r_357", "tfa_hl2_oicw"}
+-- Every item that appears anywhere above, so a promotion/demotion can wipe old rank gear
+-- before granting the new set instead of it stacking up.
+local ALL_TRACKED_ITEMS = {"pistol", "smg1", "shotgun", "357", "tfa_hl2_oicw"}
 
 local function ApplyRankBodygroups(client, rankCode)
 	local groups = RANK_BODYGROUPS[rankCode] or {}
 
-	for _, name in ipairs(ALL_BODYGROUPS) do
-		local index = client:FindBodygroupByName(name)
-
-		if (index != -1) then
-			client:SetBodygroup(index, groups[name] or 0)
-		end
+	for _, info in ipairs(client:GetBodyGroups()) do
+		client:SetBodygroup(info.id, groups[info.name] or 0)
 	end
 end
 
@@ -67,18 +59,16 @@ local function ApplyRankLoadout(character, rankCode)
 	local client = character:GetPlayer()
 	local target = RANK_ITEMS[rankCode] or {}
 
-	-- strip every tracked TFA item first, so re-promoting/demoting never stacks duplicates
 	for _, uniqueID in ipairs(ALL_TRACKED_ITEMS) do
 		for _, item in ipairs(inventory:GetItemsByUniqueID(uniqueID, true)) do
 			if (item:GetData("equip")) then
-				item:Unequip(client, false, true) -- strips the weapon AND removes the item
+				item:Unequip(client, false, true)
 			else
 				item:Remove()
 			end
 		end
 	end
 
-	-- then grant exactly what this rank should carry
 	for _, uniqueID in ipairs(target) do
 		inventory:Add(uniqueID, 1)
 	end
@@ -87,7 +77,8 @@ end
 function FACTION:OnCharacterCreated(client, character)
 	local inventory = character:GetInventory()
 
-	inventory:Add("pistol", 1)
+	-- "pistol" itself is now granted through the rank system below (rank "00"), not here,
+	-- since it needs to be swappable at RL/RC - only the ammo stays as a flat starting grant.
 	inventory:Add("pistolammo", 2)
 end
 
