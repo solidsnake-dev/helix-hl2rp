@@ -2,11 +2,35 @@ FACTION.name = "Metropolice Force"
 FACTION.description = "A metropolice unit working as Civil Protection."
 FACTION.color = Color(50, 100, 150)
 FACTION.pay = 10
-FACTION.models = {"models/z1zackmpf/male04/willardmetrocop.mdl"}
 FACTION.weapons = {"ix_stunstick"}
 FACTION.isDefault = false
 FACTION.isGloballyRecognized = true
 FACTION.runSounds = {[0] = "NPC_MetroPolice.RunFootstepLeft", [1] = "NPC_MetroPolice.RunFootstepRight"}
+
+-- wn7new pack - unmasked faces, so masks are worn separately via the worn-attachments system
+FACTION.models = {
+	"models/wn7new/metropolice/male_01.mdl", "models/wn7new/metropolice/male_02.mdl",
+	"models/wn7new/metropolice/male_03.mdl", "models/wn7new/metropolice/male_04.mdl",
+	"models/wn7new/metropolice/male_05.mdl", "models/wn7new/metropolice/male_06.mdl",
+	"models/wn7new/metropolice/male_07.mdl", "models/wn7new/metropolice/male_08.mdl",
+	"models/wn7new/metropolice/male_09.mdl", "models/wn7new/metropolice/male_10.mdl",
+	"models/wn7new/metropolice/female_01.mdl", "models/wn7new/metropolice/female_02.mdl",
+	"models/wn7new/metropolice/female_03.mdl", "models/wn7new/metropolice/female_04.mdl",
+	"models/wn7new/metropolice/female_06.mdl", "models/wn7new/metropolice/female_07.mdl",
+}
+
+-- Which gas mask variant each rank wears. My assumption: lower/mid ranks are masked (standard
+-- issue), 80/RL go unmasked as a "senior officer shows their face" status thing, RC gets the
+-- elite mask variant back. Flip any of these to nil/another variant if that's not what you want.
+local RANK_MASKS = {
+	["00"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["20"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["40"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["60"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["80"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["RL"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+	["RC"] = "models/wn7new/metropolice/n7_cp_gasmask1.mdl",
+}
 
 -- ===================================================================
 -- Custom rank progression. Ranks are read from the character's name,
@@ -37,13 +61,11 @@ local RANK_ITEMS = {
 	["20"] = {"pistol"},
 	["40"] = {"pistol"},
 	["60"] = {"pistol", "smg1"},
-	["80"] = {"pistol", "shotgun"}, -- still "same as 20 + shotgun" per your confirmation
+	["80"] = {"pistol", "shotgun"},
 	["RL"] = {"357", "shotgun"},
 	["RC"] = {"357", "tfa_hl2_oicw"}
 }
 
--- Every item that appears anywhere above, so a promotion/demotion can wipe old rank gear
--- before granting the new set instead of it stacking up.
 local ALL_TRACKED_ITEMS = {"pistol", "smg1", "shotgun", "357", "tfa_hl2_oicw"}
 
 local function ApplyRankBodygroups(client, rankCode)
@@ -52,6 +74,10 @@ local function ApplyRankBodygroups(client, rankCode)
 	for _, info in ipairs(client:GetBodyGroups()) do
 		client:SetBodygroup(info.id, groups[info.name] or 0)
 	end
+end
+
+local function ApplyRankMask(client, rankCode)
+	Schema:SetPlayerAttachment(client, "mask", RANK_MASKS[rankCode])
 end
 
 local function ApplyRankLoadout(character, rankCode)
@@ -77,8 +103,8 @@ end
 function FACTION:OnCharacterCreated(client, character)
 	local inventory = character:GetInventory()
 
-	-- "pistol" itself is now granted through the rank system below (rank "00"), not here,
-	-- since it needs to be swappable at RL/RC - only the ammo stays as a flat starting grant.
+	-- "pistol" itself is granted through the rank system below (rank "00"), not here -
+	-- only the ammo stays as a flat starting grant.
 	inventory:Add("pistolammo", 2)
 end
 
@@ -88,12 +114,13 @@ end
 
 function FACTION:OnTransferred(character)
 	character:SetName(self:GetDefaultName())
-	character:SetModel(self.models[1])
+	character:SetModel(self.models[math.random(1, #self.models)])
 
 	local client = character:GetPlayer()
 
 	if (IsValid(client)) then
 		ApplyRankBodygroups(client, "00")
+		ApplyRankMask(client, "00")
 	end
 
 	ApplyRankLoadout(character, "00")
@@ -110,6 +137,7 @@ function FACTION:OnNameChanged(client, oldValue, value)
 
 	if (newRank and newRank != oldRank) then
 		ApplyRankBodygroups(client, newRank)
+		ApplyRankMask(client, newRank)
 		ApplyRankLoadout(character, newRank)
 	end
 end
